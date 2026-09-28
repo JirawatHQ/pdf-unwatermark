@@ -7,13 +7,25 @@
 <meta name="description" content="ลบลายน้ำที่ใส่ไว้ใน PDF ของคุณเอง ประมวลผลในเบราว์เซอร์ ไฟล์ไม่ถูกส่งไปที่ไหน">
 <title>ลบลายน้ำ PDF</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script src="theme.js"></script>
 <link rel="stylesheet" href="liquid.css">
 <link rel="stylesheet" href="page.css">
 </head>
 <body>
 <svg class="sprite" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol></svg>
+<svg class="sprite" aria-hidden="true"><symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.2 15.3A8.6 8.6 0 0 1 8.7 3.8 8.6 8.6 0 1 0 20.2 15.3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol><symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.5 1.5m11.2 11.2 1.5 1.5M19.1 4.9l-1.5 1.5M6.4 17.6l-1.5 1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol></svg>
+
+<div class="sea-scene" aria-hidden="true">
+  <div class="sea-glow"></div><div class="sea-ripple"></div>
+  <canvas id="fish-school" class="fish-school"></canvas>
+  <span class="bubble bubble-one"></span><span class="bubble bubble-two"></span><span class="bubble bubble-three"></span>
+</div>
 
 <main class="wrap">
+  <div class="topbar">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">≈</span><span>ลบลายน้ำ PDF</span></a>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-pressed="false"><svg class="ic" aria-hidden="true"><use id="theme-icon" href="#i-moon"/></svg><span id="theme-label">โหมดมืด</span></button>
+  </div>
   <header class="hero">
     <h1>ลบลายน้ำออกจาก PDF ของคุณ โดยไฟล์ไม่ออกจากเครื่อง</h1>
     <p class="lede">สำหรับเอกสารที่คุณเป็นเจ้าของหรือมีสิทธิ์แก้ไข เช่น ไฟล์ร่างที่ใส่คำว่า "ร่าง" หรือโลโก้ไว้ทุกหน้า แล้วต้องการฉบับสะอาด ทุกขั้นทำในเบราว์เซอร์นี้</p>
@@ -34,6 +46,7 @@
   <div id="status" class="vh" role="status" aria-live="polite"></div>
   <ul class="results" id="results" aria-label="ไฟล์ที่เลือก"></ul>
 
+  <div class="info-grid">
   <section class="card privacy" aria-labelledby="priv-h">
     <div class="card-h"><span class="card-ic"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg></span><h2 id="priv-h">ตรวจเองได้ว่าไฟล์ไม่ถูกส่งออก</h2></div>
     <div class="card-b">
@@ -58,6 +71,7 @@
       <p class="muted">อย่าใช้ลบลายน้ำหรือตราที่เจ้าของลิขสิทธิ์หรือคลังเอกสารใส่ไว้เป็นเงื่อนไขการใช้งาน</p>
     </div>
   </section>
+  </div>
   <footer class="muted"><a href="licenses/pdf-lib-MIT.txt">pdf-lib</a> · <a href="licenses/pdfjs-Apache-2.0.txt">PDF.js</a> · <a href="licenses/Anuphan-OFL.txt">Anuphan</a></footer>
 </main>
 
@@ -81,6 +95,7 @@
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/pdf.min.js"></script>
 <script src="core.js"></script>
+<script src="school.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
