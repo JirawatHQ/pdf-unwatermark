@@ -9,7 +9,7 @@
   var scheme = window.matchMedia("(prefers-color-scheme: dark)");
   var W = 0, H = 0, scale = 1, fish = [], colors = [];
   var last = 0, raf = 0, pointer = { x: -1000, y: -1000, at: 0 };
-  var radius = 54, personal = 20, speed = 1.25, force = 0.055;
+  var radius = 54, personal = 20, speed = 1.85, force = 0.075, trailLength = 18;
 
   function rand(lo, hi) { return lo + Math.random() * (hi - lo); }
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -27,8 +27,9 @@
       var y = H * (upper ? 0.26 : 0.62) + rand(-55, 55);
       var angle = rand(-0.8, 0.8) + (upper ? Math.PI : 0);
       fish.push({ x: clamp(x, 16, W - 16), y: clamp(y, 16, H - 16),
-        vx: Math.cos(angle) * rand(.5, 1.2), vy: Math.sin(angle) * rand(.5, 1.2),
-        ax: 0, ay: 0, size: rand(6, 9), phase: rand(0, Math.PI * 2), color: i % 3, cell: 0 });
+        vx: Math.cos(angle) * rand(.9, 1.6), vy: Math.sin(angle) * rand(.9, 1.6),
+        ax: 0, ay: 0, size: rand(6, 9), phase: rand(0, Math.PI * 2), color: i % 3, cell: 0,
+        hx: [], hy: [] });
     }
   }
   function fit() {
@@ -84,12 +85,34 @@
       }
       b.vx += b.ax * step; b.vy += b.ay * step;
       var v = Math.hypot(b.vx, b.vy) || 1;
-      var wanted = clamp(v, .35, 1.9);
+      var wanted = clamp(v, .65, 2.8);
       b.vx *= wanted / v; b.vy *= wanted / v;
       b.x = clamp(b.x + b.vx * step, 9, W - 9);
       b.y = clamp(b.y + b.vy * step, 9, H - 9);
+      b.hx.push(b.x); b.hy.push(b.y);
+      if (b.hx.length > trailLength) { b.hx.shift(); b.hy.shift(); }
       b.phase += (.12 + wanted * .09) * step;
     });
+  }
+  function drawTrails() {
+    for (var age = trailLength - 2; age >= 0; age--) {
+      var life = 1 - age / (trailLength - 1);
+      ctx.globalAlpha = .7 * life;
+      ctx.lineWidth = .7 + 2.2 * life;
+      for (var color = 0; color < 3; color++) {
+        ctx.strokeStyle = colors[color] || "#477f86";
+        ctx.beginPath();
+        fish.forEach(function (b) {
+          if (b.color !== color) return;
+          var i = b.hx.length - 2 - age;
+          if (i < 0) return;
+          ctx.moveTo(b.hx[i], b.hy[i]);
+          ctx.lineTo(b.hx[i + 1], b.hy[i + 1]);
+        });
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
   }
   function drawFish(b) {
     var s = b.size, wag = Math.sin(b.phase) * .45 * s;
@@ -111,6 +134,7 @@
   }
   function draw() {
     ctx.clearRect(0, 0, W, H);
+    drawTrails();
     fish.forEach(drawFish);
   }
   function tick(now) {
