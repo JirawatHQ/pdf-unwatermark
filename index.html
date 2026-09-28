@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: blob:; worker-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="description" content="ลบลายน้ำที่ใส่ไว้ใน PDF ของคุณเอง ประมวลผลในเบราว์เซอร์ ไฟล์ไม่ถูกส่งไปที่ไหน">
+<title>ลบลายน้ำ PDF</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="liquid.css">
+<link rel="stylesheet" href="page.css">
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol></svg>
+
+<main class="wrap">
+  <header class="hero">
+    <h1>ลบลายน้ำออกจาก PDF ของคุณ โดยไฟล์ไม่ออกจากเครื่อง</h1>
+    <p class="lede">สำหรับเอกสารที่คุณเป็นเจ้าของหรือมีสิทธิ์แก้ไข เช่น ไฟล์ร่างที่ใส่คำว่า "ร่าง" หรือโลโก้ไว้ทุกหน้า แล้วต้องการฉบับสะอาด ทุกขั้นทำในเบราว์เซอร์นี้</p>
+  </header>
+
+  <section class="card drop" id="drop" aria-labelledby="pick-h">
+    <div class="card-b drop-b">
+      <span class="empty-ic"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg></span>
+      <h2 id="pick-h">ลากไฟล์ PDF มาวางตรงนี้</h2>
+      <span class="upload-pick">
+        <input type="file" id="file" accept="application/pdf,.pdf" multiple aria-describedby="file-h">
+        <span class="btn pri" aria-hidden="true"><svg class="ic"><use href="#i-upload"/></svg>เลือกไฟล์ PDF</span>
+        <label for="file" class="vh">เลือกไฟล์ PDF</label>
+      </span>
+      <p class="help" id="file-h">เลือกได้หลายไฟล์ ไฟล์ที่ตั้งรหัสผ่านต้องปลดรหัสก่อน</p>
+    </div>
+  </section>
+
+  <div id="status" class="vh" role="status" aria-live="polite"></div>
+  <ul class="results" id="results" aria-label="ไฟล์ที่เลือก"></ul>
+
+  <section class="card privacy" aria-labelledby="priv-h">
+    <div class="card-h"><span class="card-ic"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg></span><h2 id="priv-h">ตรวจเองได้ว่าไฟล์ไม่ถูกส่งออก</h2></div>
+    <div class="card-b">
+      <p>ไฟล์ PDF ถูกอ่านและแก้ในเบราว์เซอร์ ไม่มี API สำหรับอัปโหลดไฟล์ กฎ <code>connect-src 'none'</code> บล็อกคำขอส่งข้อมูลแบบ fetch/XHR และสคริปต์ทั้งหมดมาจากเว็บนี้</p>
+      <ol>
+        <li>ใน Chromium ทดสอบได้โดยเปิดหน้านี้ให้โหลดเสร็จ แล้วปิด Wi-Fi หรือถอดสายเน็ตก่อนเลือกไฟล์ เบราว์เซอร์อื่นอาจจัดการไฟล์แบบออฟไลน์ต่างกัน</li>
+        <li>หรือเปิดเครื่องมือนักพัฒนา (F12 หรือ ⌥⌘I) ไปแท็บ Network แล้วลากไฟล์ลง จะไม่มีคำขออัปโหลด PDF อาจเห็นคำขอโหลดไฟล์ <code>pdf.worker.min.js</code> จากเว็บนี้</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="what-h">
+    <div class="card-h"><h2 id="what-h">ลบอะไรได้ ลบอะไรไม่ได้</h2></div>
+    <div class="card-b">
+      <ul>
+        <li>ลบได้: ลายน้ำที่ใส่เป็นวัตถุแยก (annotation หรือ layer ชื่อ Watermark) และรูปที่วางซ้อนซ้ำเกือบทุกหน้า (ไม่นับภาพเต็มหน้า)</li>
+        <li>หลังลบ หน้าเว็บเทียบข้อความที่ดึงได้ทุกหน้ากับต้นฉบับ ถ้าไม่ตรงจะไม่ให้ดาวน์โหลด การตรวจนี้ไม่ครอบคลุมข้อความที่เป็นส่วนหนึ่งของภาพสแกน</li>
+        <li>ลบไม่ได้: ลายน้ำที่พิมพ์ติดอยู่ในภาพสแกน เพราะเป็นเนื้อภาพเดียวกัน</li>
+        <li>ไฟล์ที่มีลายเซ็นดิจิทัลหรือรูปแบบภาพฝังในคำสั่ง PDF ที่ตรวจไม่ได้อย่างปลอดภัยจะถูกปฏิเสธ</li>
+        <li>โลโก้หัวกระดาษที่อยู่ทุกหน้าอาจถูกนับเป็นรูปซ้ำ ถ้าอยากเก็บไว้ ให้เอาติ๊กชนิดนั้นออกก่อนกดลบ</li>
+      </ul>
+      <p class="muted">อย่าใช้ลบลายน้ำหรือตราที่เจ้าของลิขสิทธิ์หรือคลังเอกสารใส่ไว้เป็นเงื่อนไขการใช้งาน</p>
+    </div>
+  </section>
+  <footer class="muted"><a href="licenses/pdf-lib-MIT.txt">pdf-lib</a> · <a href="licenses/pdfjs-Apache-2.0.txt">PDF.js</a> · <a href="licenses/Anuphan-OFL.txt">Anuphan</a></footer>
+</main>
+
+<template id="row">
+  <li class="card res">
+    <div class="card-b res-b">
+      <div class="res-head"><strong class="res-name"></strong><span class="muted res-meta num"></span></div>
+      <p class="res-msg"></p>
+      <div class="bar" hidden role="progressbar" aria-label="ความคืบหน้า" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+      <fieldset class="kinds" hidden><legend class="label">ชนิดที่จะลบ</legend></fieldset>
+      <div class="pv" hidden>
+        <figure><canvas class="pv-before" role="img" aria-label="ตัวอย่างหน้าก่อนลบ"></canvas><figcaption class="pv-before-cap"></figcaption></figure>
+        <figure class="pv-after-fig" hidden><canvas class="pv-after" role="img" aria-label="ตัวอย่างหน้าหลังลบ"></canvas><figcaption class="pv-after-cap"></figcaption></figure>
+      </div>
+      <p class="pv-note help" hidden>ตัวอย่างอาจไม่แสดงลายน้ำชนิดวัตถุซ้อนหน้าในบางเบราว์เซอร์ โปรดเปิดไฟล์ผลลัพธ์ตรวจซ้ำก่อนนำไปใช้</p>
+      <div class="res-act"></div>
+    </div>
+  </li>
+</template>
+
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="vendor/pdf.min.js"></script>
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

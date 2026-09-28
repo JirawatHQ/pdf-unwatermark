@@ -1,0 +1,41 @@
+/* page.css : ของเฉพาะหน้านี้ ต่อจาก liquid.css (token ทั้งหมดมาจากที่นั่น) */
+@font-face { font-family: "Anuphan"; src: url("fonts/Anuphan.ttf") format("truetype"); font-weight: 100 700; font-display: swap; }
+[hidden] { display: none !important; } /* layout .pv/.bar/.kinds ใช้ display เอง อย่าให้ทับ hidden */
+
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.wrap { max-width: 760px; margin: 0 auto; padding: var(--s6) var(--s4) var(--s7); display: grid; gap: var(--s5); }
+.hero h1 { font-size: 1.95rem; line-height: 1.3; margin: 0 0 var(--s2); }
+.lede { margin: 0; color: var(--muted); max-width: 60ch; }
+
+.drop-b { display: grid; justify-items: center; text-align: center; gap: var(--s3); padding: var(--s6) var(--s4); }
+.drop-b h2 { margin: 0; font-size: 1.25rem; }
+.drop { border: 2px dashed var(--line-strong); transition: border-color var(--m2) var(--m-ease), background var(--m2) var(--m-ease); }
+.drop.over { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, transparent); }
+
+.results { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
+.results:empty { display: none; }
+.res-b { display: grid; gap: var(--s2); }
+.res-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s3); }
+.res-name { overflow-wrap: anywhere; }
+.res-msg { margin: 0; }
+.res-msg.ok { color: var(--success); }
+.res-msg.bad { color: var(--danger); }
+.kinds { margin: 0; padding: 0; border: 0; display: grid; gap: var(--s2); }
+.kinds legend { margin-bottom: var(--s1); padding: 0; }
+.pv { display: flex; flex-wrap: wrap; gap: var(--s3); }
+.pv figure { margin: 0; display: grid; gap: var(--s1); }
+.pv canvas { width: 100%; max-width: 300px; height: auto; border: 1px solid var(--line); border-radius: var(--r-sm); background: #fff; }
+.pv figcaption { font-size: .8125rem; color: var(--muted); }
+@media (max-width: 480px) { .pv figure { flex: 1 1 calc(50% - var(--s3)); } }
+.res-act { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.res-act:empty { display: none; }
+.res-act .btn:disabled { opacity: .55; cursor: wait; }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--primary); transition: width var(--m1) linear; }
+
+.privacy ol, .card-b ul { margin: var(--s2) 0 0; padding-left: 1.3em; display: grid; gap: var(--s1); }
+.card-b p { margin: 0 0 var(--s2); }
+code { font-size: .875em; overflow-wrap: anywhere; }
+footer { text-align: center; font-size: .8125rem; }
+@media (max-width: 480px) { .hero h1 { font-size: 1.5rem; } .wrap { padding-top: var(--s5); } }
+@media (pointer: coarse) { .btn { min-height: 44px; } }   /* เป้าหลักบนมือถือ ≥44px */
