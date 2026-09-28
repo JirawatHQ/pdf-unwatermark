@@ -1,9 +1,10 @@
 /* core.js : ตัวลบลายน้ำ PDF ที่ทำงานในเบราว์เซอร์ล้วน (ไม่มีการส่งไฟล์ไปไหน)
  *
- * ตรรกะเดียวกับชั้น watermark ของ scripts/pdf_clean.py (Python) จับ 3 แบบ:
+ * จับ 4 แบบ:
  *   1. annotation ชนิด /Watermark
  *   2. บล็อกใน content stream ที่ติดป้าย /Artifact <</Subtype /Watermark>> หรืออยู่ใน layer (OCG) ชื่อ watermark/ลายน้ำ
  *   3. ตราประทับ = รูปเดียวกันที่วางบน >= 90% ของหน้า (อย่างน้อย 3 หน้า) และกินพื้นที่ < 50% ของหน้า
+ *   4. บล็อกข้อความโปร่งใสที่วางคำเดียวกันซ้ำเฉียงในหน้าเดียว
  * ใช้ได้ทั้งในเบราว์เซอร์ (window.Unwatermark) และใน Node (require) สำหรับเทสต์
  */
 (function (root, factory) {
@@ -202,8 +203,36 @@
     return ref.toString();
   }
 
+  /* A self-contained, faint text block repeated diagonally on the same page.
+   * Only remove the inner q/Q block after checking every drawing command inside. */
+  function repeatedTextBlocks(ctx, ops, src, res) {
+    var states = subDict(ctx, res, "ExtGState"), stack = [], drop = {}, count = 0;
+    ops.forEach(function (o, i) {
+      if (o.op === "q") stack.push(i);
+      if (o.op !== "Q" || !stack.length) return;
+      var start = stack.pop(), block = ops.slice(start, i + 1);
+      var allowed = { q: 1, Q: 1, gs: 1, rg: 1, BT: 1, ET: 1, Tf: 1, Tm: 1, Tj: 1 };
+      if (block.some(function (x) { return !allowed[x.op]; })) return;
+      if (block.filter(function (x) { return x.op === "q"; }).length !== 1) return;
+      var gsOps = block.filter(function (x) { return x.op === "gs"; });
+      var texts = block.filter(function (x) { return x.op === "Tj"; });
+      var matrix = block.filter(function (x) { return x.op === "Tm" && x.args.length === 6 &&
+        Math.abs(x.args[1].num || 0) > 0.2 && Math.abs(x.args[2].num || 0) > 0.2; });
+      if (gsOps.length !== 1 || texts.length < 3 || matrix.length < texts.length) return;
+      var key = gsOps[0].args[0] && gsOps[0].args[0].name;
+      var gs = key && subDict(ctx, states, key);
+      var alpha = gs && gs.get && ctx.lookup(gs.get(PDFName.of("ca")));
+      if (!alpha || typeof alpha.asNumber !== "function" || alpha.asNumber() > 0.3) return;
+      var samples = texts.map(function (x) { return src.slice(x.start, x.end).replace(/\s*Tj\s*$/, "").trim(); });
+      if (samples[0].length < 6 || samples.some(function (x) { return x !== samples[0]; })) return;
+      for (var j = start; j <= i; j++) drop[j] = 1;
+      count++;
+    });
+    return { drop: drop, count: count };
+  }
+
   /* ── ตัวหลัก ───────────────────────────────────────────────────────────
-   * scan(bytes) → {doc, pages:[…], found:{annot, layer, stamp}} ใช้ต่อด้วย clean()
+   * scan(bytes) → {doc, pages:[…], found:{annot, layer, stamp, text}} ใช้ต่อด้วย clean()
    * onProgress(done, total) เรียกทุกหน้า */
   async function scan(bytes, onProgress) {
     var doc = await PDFLib.PDFDocument.load(bytes, { updateMetadata: false });
@@ -218,7 +247,7 @@
     for (var p = 0; p < pages.length; p++) {
       var node = pages[p].node, box = pages[p].getMediaBox();
       var res = resources(ctx, node);
-      var ops = parseOps(pageContent(ctx, node));
+      var src = pageContent(ctx, node), ops = parseOps(src);
       var xobjs = subDict(ctx, res, "XObject"), props = subDict(ctx, res, "Properties");
       var d = draws(ops, Math.abs(box.width * box.height) || 1);
       var seen = {};
@@ -246,34 +275,38 @@
           dropLayer[i] = 1; depth = 1; blocks++;
         }
       });
-      info.push({ ops: ops, draws: d, dropLayer: dropLayer, dropStamp: {}, blocks: blocks, annots: wmAnnots });
+      var repeated = repeatedTextBlocks(ctx, ops, src, res);
+      info.push({ ops: ops, draws: d, dropLayer: dropLayer, dropText: repeated.drop,
+        textBlocks: repeated.count, dropStamp: {}, blocks: blocks, annots: wmAnnots });
       if (onProgress) onProgress(p + 1, pages.length * 2);
       if (p % 20 === 19) await new Promise(function (r) { setTimeout(r, 0); });  /* ให้หน้าจอขยับ */
     }
     var need = Math.max(STAMP_MIN_PAGES, STAMP_SHARE * pages.length), stamps = {};
     Object.keys(stampCount).forEach(function (k) { if (stampCount[k] >= need) stamps[k] = 1; });
-    var found = { annot: 0, layer: 0, stamp: 0 };
+    var found = { annot: 0, layer: 0, stamp: 0, text: 0 };
     info.forEach(function (pg) {
       pg.stamps = 0;
       pg.draws.forEach(function (x) { if (x.key && stamps[x.key]) { pg.dropStamp[x.idx] = 1; pg.stamps++; } });
       found.annot += pg.annots; found.layer += pg.blocks; found.stamp += pg.stamps;
+      found.text += pg.textBlocks;
     });
     var firstHit = -1;
-    info.forEach(function (pg, i) { if (firstHit < 0 && (pg.annots || pg.blocks || pg.stamps)) firstHit = i; });
+    info.forEach(function (pg, i) { if (firstHit < 0 && (pg.annots || pg.blocks || pg.stamps || pg.textBlocks)) firstHit = i; });
     return { doc: doc, pages: info, found: found, pageCount: pages.length, firstHit: firstHit };
   }
 
-  /* kinds = {annot, layer, stamp} เลือกได้ว่าจะลบชนิดไหน (ค่าตั้งต้น ลบทุกชนิด)
+  /* kinds = {annot, layer, stamp, text} เลือกได้ว่าจะลบชนิดไหน (ค่าตั้งต้น ลบทุกชนิด)
    * คืน {bytes, layerPages} — layerPages = เลขหน้า (เริ่ม 1) ที่ตัดบล็อก layer ข้อความหายได้โดยตั้งใจ */
   async function clean(result, kinds, onProgress) {
-    kinds = kinds || { annot: true, layer: true, stamp: true };
+    kinds = kinds || { annot: true, layer: true, stamp: true, text: true };
     var doc = result.doc, ctx = doc.context, pages = doc.getPages(), layerPages = [];
     for (var p = 0; p < pages.length; p++) {
       var node = pages[p].node, pg = result.pages[p];
       var drop = {};
       if (kinds.layer) Object.keys(pg.dropLayer).forEach(function (k) { drop[k] = 1; });
+      if (kinds.text) Object.keys(pg.dropText).forEach(function (k) { drop[k] = 1; });
       if (kinds.stamp) Object.keys(pg.dropStamp).forEach(function (k) { drop[k] = 1; });
-      if (kinds.layer && pg.blocks) layerPages.push(p + 1);
+      if ((kinds.layer && pg.blocks) || (kinds.text && pg.textBlocks)) layerPages.push(p + 1);
       if (kinds.annot && pg.annots) {
         var annots = node.Annots(), keep = [];
         for (var a = 0; a < annots.size(); a++) {

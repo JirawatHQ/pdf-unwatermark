@@ -12,7 +12,8 @@
   var KINDS = [
     { key: "annot", label: "ลายน้ำพื้นหลัง (วัตถุซ้อนบนหน้า)", unit: "จุด" },
     { key: "layer", label: "ลายน้ำใน layer ชื่อ Watermark", unit: "ก้อน" },
-    { key: "stamp", label: "รูปที่วางซ้ำเกือบทุกหน้า (อาจเป็นโลโก้จริง)", unit: "จุด" }
+    { key: "stamp", label: "รูปที่วางซ้ำเกือบทุกหน้า (อาจเป็นโลโก้จริง)", unit: "จุด" },
+    { key: "text", label: "ข้อความจางที่วางซ้ำเฉียงบนหน้า", unit: "ก้อน" }
   ];
 
   function say(text) { status.textContent = text; }
@@ -113,9 +114,9 @@
     }
     card.progress(0, 0);
     card.q(".res-meta").textContent = fmtSize(file.size) + " · " + th(result.pageCount) + " หน้า";
-    var f = result.found, total = f.annot + f.layer + f.stamp;
+    var f = result.found, total = f.annot + f.layer + f.stamp + f.text;
     if (!total) {
-      card.msg("ไม่พบลายน้ำที่ลบได้ ถ้าลายน้ำติดอยู่ในภาพสแกน เครื่องมือนี้ลบไม่ได้");
+      card.msg("ไม่พบลายน้ำที่ลบได้ ลายน้ำอาจฝังในภาพสแกนหรือเป็นรูปแบบที่ยังไม่รองรับ");
       say(file.name + ": ไม่พบลายน้ำ");
       return;
     }
@@ -168,7 +169,8 @@
           say(file.name + ": หยุด ข้อความไม่ครบ");
           return;
         }
-        var removed = (kinds.annot ? f.annot : 0) + (kinds.layer ? f.layer : 0) + (kinds.stamp ? f.stamp : 0);
+        var removed = (kinds.annot ? f.annot : 0) + (kinds.layer ? f.layer : 0) +
+          (kinds.stamp ? f.stamp : 0) + (kinds.text ? f.text : 0);
         var coverage = check.textPages === 0
           ? "ไฟล์นี้ไม่มีข้อความที่ดึงได้ จึงตรวจเนื้อหาภาพสแกนอัตโนมัติไม่ได้"
           : "ข้อความที่ดึงได้ตรงต้นฉบับ " + th(check.textPages) + " หน้า";
@@ -203,7 +205,8 @@
       var selected = {};
       fs.querySelectorAll("input:checked").forEach(function (b) { selected[b.value] = true; });
       var idx = result.pages.findIndex(function (p) {
-        return (selected.annot && p.annots) || (selected.layer && p.blocks) || (selected.stamp && p.stamps);
+        return (selected.annot && p.annots) || (selected.layer && p.blocks) ||
+          (selected.stamp && p.stamps) || (selected.text && p.textBlocks);
       });
       card.q(".pv").hidden = idx < 0;
       removeBtn.disabled = true;
