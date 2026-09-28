@@ -15,8 +15,9 @@
 .results { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
 .results:empty { display: none; }
 .res-b { display: grid; gap: var(--s2); }
-.res-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s3); }
+.res-head { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); min-height: var(--tap); padding-right: calc(var(--tap) + var(--s2)); }
 .res-name { overflow-wrap: anywhere; }
+.res-remove { position: absolute; top: 0; right: 0; }
 .res-msg { margin: 0; }
 .res-msg.ok { color: var(--success); }
 .res-msg.bad { color: var(--danger); }

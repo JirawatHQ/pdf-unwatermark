@@ -155,9 +155,6 @@ textarea.input { padding: var(--s2) var(--s3); min-height: calc(var(--tap) * 2.5
 /* อัปโหลด: ปุ่ม + รายชื่อไฟล์ */
 .upload { display: grid; gap: var(--s2); justify-items: start; }
 .upload-pick { position: relative; display: inline-flex; }
-.upload-pick input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-.upload-pick:has(input:focus-visible) .btn { box-shadow: var(--ring); }
-.upload-pick:hover .btn { background-size: 100% 100%; }
 .files { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: var(--s1); font-size: .8125rem; }
 .files li { display: flex; align-items: center; gap: var(--s2); padding: var(--s1) var(--s1) var(--s1) var(--s3); border-radius: var(--r-sm); background: var(--solid); border: 1px solid var(--line); }
 .files .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

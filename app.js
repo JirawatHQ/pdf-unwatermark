@@ -3,7 +3,7 @@
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  var drop = $("drop"), input = $("file"), list = $("results"), status = $("status");
+  var drop = $("drop"), input = $("file"), pick = $("pick"), list = $("results"), status = $("status");
   var MB = 1024 * 1024, MAX_BYTES = 200 * MB, PREVIEW_W = 300;
   var pdfjs = window.pdfjsLib;
   /* PDF.js จัดการวงจร worker ของแต่ละเอกสารเอง เมื่อ destroy() แล้วเปิดเอกสารใหม่ได้ */
@@ -74,20 +74,30 @@
 
   function makeCard(file) {
     var li = $("row").content.firstElementChild.cloneNode(true);
+    var active = true;
     li.querySelector(".res-name").textContent = file.name;
     li.querySelector(".res-meta").textContent = fmtSize(file.size);
+    var remove = li.querySelector(".res-remove");
+    remove.setAttribute("aria-label", "เอาไฟล์ " + file.name + " ออกจากรายการ");
+    remove.addEventListener("click", function () {
+      active = false;
+      li.remove();
+      say("เอาไฟล์ " + file.name + " ออกจากรายการแล้ว เลือกไฟล์ใหม่ได้");
+      pick.focus();
+    });
     list.prepend(li);
     var q = function (sel) { return li.querySelector(sel); };
     return {
-      li: li, q: q,
-      msg: function (text, kind) { var p = q(".res-msg"); p.textContent = text; p.className = "res-msg" + (kind ? " " + kind : ""); },
+      li: li, q: q, active: function () { return active; },
+      msg: function (text, kind) { if (!active) return; var p = q(".res-msg"); p.textContent = text; p.className = "res-msg" + (kind ? " " + kind : ""); },
       progress: function (done, total) {
+        if (!active) throw new Error("CARD_REMOVED");
         var bar = q(".bar");
         bar.hidden = total === 0;
         bar.firstElementChild.style.width = Math.round(done / Math.max(total, 1) * 100) + "%";
         bar.setAttribute("aria-valuenow", String(Math.round(done / Math.max(total, 1) * 100)));
       },
-      actions: function (nodes) { var box = q(".res-act"); box.textContent = ""; nodes.forEach(function (n) { box.appendChild(n); }); }
+      actions: function (nodes) { if (!active) return; var box = q(".res-act"); box.textContent = ""; nodes.forEach(function (n) { box.appendChild(n); }); }
     };
   }
 
@@ -98,6 +108,7 @@
       return;
     }
     var bytes = new Uint8Array(await file.arrayBuffer());
+    if (!card.active()) return;
     if (String.fromCharCode.apply(null, bytes.subarray(0, 5)) !== "%PDF-") {
       card.msg("ไฟล์นี้ไม่ใช่ PDF เลือกไฟล์ที่ลงท้าย .pdf", "bad");
       say(file.name + " ไม่ใช่ PDF");
@@ -109,9 +120,11 @@
     try {
       result = await Unwatermark.scan(bytes, card.progress);
     } catch (err) {
+      if (!card.active()) return;
       card.progress(0, 0); card.msg(why(err), "bad"); say(file.name + ": " + why(err));
       return;
     }
+    if (!card.active()) return;
     card.progress(0, 0);
     card.q(".res-meta").textContent = fmtSize(file.size) + " · " + th(result.pageCount) + " หน้า";
     var f = result.found, total = f.annot + f.layer + f.stamp + f.text;
@@ -156,14 +169,17 @@
       try {
         card.msg("กำลังลบลายน้ำ...");
         var out = await Unwatermark.clean(result, kinds, card.progress);
+        if (!card.active()) return;
         card.msg("กำลังตรวจว่าข้อความทุกหน้ายังครบ...");
         var check = await Unwatermark.verifyText(pdfjs, bytes, out.bytes, out.layerPages, card.progress);
+        if (!card.active()) return;
         var bad = check.bad;
         card.progress(0, 0);
         if (bad.length) {
           card.msg("หยุดไว้ก่อน: หลังลบแล้วข้อความไม่ตรงต้นฉบับ " + th(bad.length) + " หน้า (เช่น หน้า " +
                    bad.slice(0, 5).join(", ") + ") จึงไม่ให้ดาวน์โหลด ลองเอาติ๊กบางชนิดออกแล้วกดลบใหม่", "bad");
           result = await Unwatermark.scan(bytes);
+          if (!card.active()) return;
           btn.disabled = false;
           fs.querySelectorAll("input").forEach(function (b) { b.disabled = false; });
           say(file.name + ": หยุด ข้อความไม่ครบ");
@@ -179,7 +195,9 @@
         card.q(".pv-after-cap").textContent = "หลังลบ (หน้า " + th(hitPage) + ")";
         try {
           await renderPage(out.bytes, hitPage, card.q(".pv-after"));
+          if (!card.active()) return;
         } catch (previewErr) {
+          if (!card.active()) return;
           card.msg("ตรวจข้อความผ่าน แต่แสดงตัวอย่างหลังลบไม่ได้ จึงยังไม่ให้ดาวน์โหลด โหลดหน้าเว็บใหม่แล้วลองอีกครั้ง", "bad");
           card.actions([]);
           say(file.name + ": แสดงตัวอย่างหลังลบไม่ได้");
@@ -193,15 +211,18 @@
         dl.focus();
         say("ลบลายน้ำ " + file.name + " เสร็จ พร้อมดาวน์โหลด");
       } catch (err) {
+        if (!card.active()) return;
         card.progress(0, 0);
         try { result = await Unwatermark.scan(bytes); btn.disabled = false; }
         catch (_) { card.actions([]); }
+        if (!card.active()) return;
         fs.querySelectorAll("input").forEach(function (b) { b.disabled = false; });
         card.msg("ลบไม่สำเร็จ: " + why(err) + " กดลองใหม่ได้", "bad");
       }
     });
     card.actions([removeBtn]);
     function updatePreview() {
+      if (!card.active()) return;
       var selected = {};
       fs.querySelectorAll("input:checked").forEach(function (b) { selected[b.value] = true; });
       var idx = result.pages.findIndex(function (p) {
@@ -218,11 +239,13 @@
         return renderPage(bytes, pageNo, card.q(".pv-before"));
       });
       previewChain.then(function () {
+        if (!card.active()) return;
         if (seq === previewSeq) {
           card.q(".pv-before-cap").textContent = "ก่อนลบ (หน้า " + th(hitPage) + ")";
           removeBtn.disabled = false;
         }
       }).catch(function () {
+        if (!card.active()) return;
         if (seq !== previewSeq) return;
         card.msg("แสดงตัวอย่างก่อนลบไม่ได้ จึงยังไม่ลบไฟล์นี้ โหลดหน้าเว็บใหม่แล้วลองอีกครั้ง", "bad");
         card.actions([]);
@@ -234,6 +257,7 @@
 
   function take(files) { Array.prototype.forEach.call(files, function (f) { handle(f); }); }
 
+  pick.addEventListener("click", function () { input.click(); });
   input.addEventListener("change", function () { take(input.files); input.value = ""; });
   ["dragenter", "dragover"].forEach(function (ev) {
     document.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("over"); });

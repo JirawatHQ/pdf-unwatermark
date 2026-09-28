@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="page.css">
 </head>
 <body>
-<svg class="sprite" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol></svg>
+<svg class="sprite" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol></svg>
 
 <main class="wrap">
   <header class="hero">
@@ -24,9 +24,8 @@
       <span class="empty-ic"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg></span>
       <h2 id="pick-h">ลากไฟล์ PDF มาวางตรงนี้</h2>
       <span class="upload-pick">
-        <input type="file" id="file" accept="application/pdf,.pdf" multiple aria-describedby="file-h">
-        <span class="btn pri" aria-hidden="true"><svg class="ic"><use href="#i-upload"/></svg>เลือกไฟล์ PDF</span>
-        <label for="file" class="vh">เลือกไฟล์ PDF</label>
+        <input type="file" id="file" accept="application/pdf,.pdf" multiple hidden>
+        <button type="button" id="pick" class="btn pri" aria-describedby="file-h"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg>เลือกไฟล์ PDF</button>
       </span>
       <p class="help" id="file-h">เลือกได้หลายไฟล์ ไฟล์ที่ตั้งรหัสผ่านต้องปลดรหัสก่อน</p>
     </div>
@@ -52,7 +51,7 @@
       <ul>
         <li>ลบได้: ลายน้ำที่ใส่เป็นวัตถุแยก (annotation หรือ layer ชื่อ Watermark), ข้อความจางที่วางซ้ำเฉียง และรูปที่วางซ้อนซ้ำเกือบทุกหน้า (ไม่นับภาพเต็มหน้า)</li>
         <li>หลังลบ หน้าเว็บเทียบข้อความที่ดึงได้ทุกหน้ากับต้นฉบับ ถ้าไม่ตรงจะไม่ให้ดาวน์โหลด การตรวจนี้ไม่ครอบคลุมข้อความที่เป็นส่วนหนึ่งของภาพสแกน</li>
-        <li>ลบไม่ได้: ลายน้ำที่พิมพ์ติดอยู่ในภาพสแกน เพราะเป็นเนื้อภาพเดียวกัน</li>
+        <li>ยังลบไม่ได้อัตโนมัติ: ลายน้ำที่พิมพ์ติดในภาพสแกน, ข้อความลายน้ำรูปแบบอื่น หรือวัตถุที่ฝังอยู่ใน Form XObject จึงไม่รับประกันว่าจะลบได้ทุกไฟล์</li>
         <li>ไฟล์ที่มีลายเซ็นดิจิทัลหรือรูปแบบภาพฝังในคำสั่ง PDF ที่ตรวจไม่ได้อย่างปลอดภัยจะถูกปฏิเสธ</li>
         <li>โลโก้หัวกระดาษที่อยู่ทุกหน้าอาจถูกนับเป็นรูปซ้ำ ถ้าอยากเก็บไว้ ให้เอาติ๊กชนิดนั้นออกก่อนกดลบ</li>
       </ul>
@@ -65,7 +64,7 @@
 <template id="row">
   <li class="card res">
     <div class="card-b res-b">
-      <div class="res-head"><strong class="res-name"></strong><span class="muted res-meta num"></span></div>
+      <div class="res-head"><strong class="res-name"></strong><span class="muted res-meta num"></span><button type="button" class="btn icon res-remove" title="เอาไฟล์ออกจากรายการ"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button></div>
       <p class="res-msg"></p>
       <div class="bar" hidden role="progressbar" aria-label="ความคืบหน้า" aria-valuemin="0" aria-valuemax="100"><span></span></div>
       <fieldset class="kinds" hidden><legend class="label">ชนิดที่จะลบ</legend></fieldset>
