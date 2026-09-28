@@ -2,7 +2,7 @@
  *
  * จับ 4 แบบ:
  *   1. annotation ชนิด /Watermark
- *   2. บล็อกใน content stream ที่ติดป้าย /Artifact <</Subtype /Watermark>> หรืออยู่ใน layer (OCG) ชื่อ watermark/ลายน้ำ
+ *   2. บล็อกใน content stream หรือ Form XObject ที่อยู่ใน layer (OCG) ชื่อ watermark/ลายน้ำ
  *   3. ตราประทับ = รูปเดียวกันที่วางบน >= 90% ของหน้า (อย่างน้อย 3 หน้า) และกินพื้นที่ < 50% ของหน้า
  *   4. บล็อกข้อความโปร่งใสที่วางคำเดียวกันซ้ำเฉียงในหน้าเดียว
  * ใช้ได้ทั้งในเบราว์เซอร์ (window.Unwatermark) และใน Node (require) สำหรับเทสต์
@@ -203,6 +203,31 @@
     return ref.toString();
   }
 
+  /* Some publishers attach /OC to a Form XObject instead of wrapping its Do in BDC.
+   * Remove only a Form explicitly assigned to an OCG named Watermark. */
+  function watermarkOC(ctx, oc) {
+    oc = oc && ctx.lookup(oc);
+    if (!(oc instanceof PDFDict)) return false;
+    var type = nameOf(oc.get(PDFName.of("Type")));
+    if (type === "OCG") {
+      var title = textOf(ctx.lookup(oc.get(PDFName.of("Name")))).toLowerCase();
+      return title.indexOf("watermark") !== -1 || title.indexOf("ลายน้ำ") !== -1;
+    }
+    if (type !== "OCMD") return false;
+    var groups = oc.get(PDFName.of("OCGs"));
+    groups = groups && ctx.lookup(groups);
+    if (groups instanceof PDFArray) {
+      for (var i = 0; i < groups.size(); i++) if (watermarkOC(ctx, groups.get(i))) return true;
+      return false;
+    }
+    return watermarkOC(ctx, groups);
+  }
+  function isWatermarkForm(ctx, xobjs, name) {
+    var form = subDict(ctx, xobjs, name);
+    return !!(form && form.dict && nameOf(form.dict.get(PDFName.of("Subtype"))) === "Form" &&
+      watermarkOC(ctx, form.dict.get(PDFName.of("OC"))));
+  }
+
   /* A self-contained, faint text block repeated diagonally on the same page.
    * Only remove the inner q/Q block after checking every drawing command inside. */
   function repeatedTextBlocks(ctx, ops, src, res) {
@@ -273,6 +298,11 @@
           else if (o.op === "EMC") depth--;
         } else if (o.op === "BDC" && isWmMarker(ctx, o, props)) {
           dropLayer[i] = 1; depth = 1; blocks++;
+        }
+      });
+      d.forEach(function (x) {
+        if (isWatermarkForm(ctx, xobjs, x.name) && !dropLayer[x.idx]) {
+          dropLayer[x.idx] = 1; blocks++;
         }
       });
       var repeated = repeatedTextBlocks(ctx, ops, src, res);
